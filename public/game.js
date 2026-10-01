@@ -539,6 +539,8 @@ const params = new URLSearchParams(location.search);
 if (session.get()) { show('room'); showVeil('다시 연결하는 중…', ''); room = { faultsMax: 3 }; connect(); }
 else if (params.get('room')) openLobby(params.get('room').toUpperCase().slice(0, 4));
 
+/* @test-hooks:start */
 // 테스트용
 window.__wc = { get solo() { return solo; }, get room() { return room; }, startSolo, show };
+/* @test-hooks:end */
 })();
