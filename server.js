@@ -3,6 +3,7 @@
 const http = require('http');
 const fs = require('fs');
 const path = require('path');
+const crypto = require('crypto');
 const { WebSocketServer } = require('ws');
 const D = require('./dict.js');
 
@@ -104,16 +105,35 @@ function send(ws, type, payload = {}) {
 function makeCode() {
   for (let k = 0; k < 50; k++) {
     let code = '';
-    for (let i = 0; i < 4; i++) code += CODE_ALPHABET[Math.floor(Math.random() * CODE_ALPHABET.length)];
+    for (let i = 0; i < 4; i++) code += CODE_ALPHABET[crypto.randomInt(CODE_ALPHABET.length)];
     if (!rooms.has(code)) return code;
   }
   return 'R' + Date.now().toString(36).slice(-3).toUpperCase();
 }
-const makeToken = () => Math.random().toString(36).slice(2) + Date.now().toString(36);
+const makeToken = () => crypto.randomBytes(18).toString('base64url');   // 자리를 되찾는 열쇠: 예측할 수 없는 난수로
 
 function sanitizeName(raw) {
   const name = String(raw || '').replace(/[\u0000-\u001f<>]/g, '').trim().slice(0, 8);
   return name || `손님${Math.floor(100 + Math.random() * 900)}`;
+}
+
+// ---------- 방 코드 무차별 대입 방지 ----------
+// 없는 방 코드를 짧은 시간에 여러 번 대면 잠깐 막는다 (손님 주소 기준: 로비 프록시가 붙여 주는 x-forwarded-for 의 첫 값)
+const JOIN_FAIL_MAX = 8, JOIN_WINDOW_MS = 60000, JOIN_BLOCK_MS = 60000;
+const joinFails = new Map();   // 주소 -> { n, since, until }
+const clientIp = (req) => String((req && req.headers['x-forwarded-for']) || (req && req.socket.remoteAddress) || '').split(',')[0].trim();
+function joinBlocked(ip) {
+  const f = joinFails.get(ip);
+  return !!f && f.until > Date.now();
+}
+function noteJoinFail(ip) {
+  const now = Date.now();
+  let f = joinFails.get(ip);
+  if (!f || now - f.since > JOIN_WINDOW_MS) f = { n: 0, since: now, until: 0 };
+  f.n++;
+  if (f.n >= JOIN_FAIL_MAX) { f.until = now + JOIN_BLOCK_MS; f.n = 0; f.since = now; }
+  joinFails.set(ip, f);
+  if (joinFails.size > 2000) for (const [k, v] of joinFails) if (v.until < now && now - v.since > JOIN_WINDOW_MS) joinFails.delete(k);
 }
 
 // ---------- Rooms ----------
@@ -301,8 +321,9 @@ const handlers = {
   join(client, msg) {
     if (client.roomCode) return;
     dropFromQueue(client);
+    if (joinBlocked(client.ip)) return send(client.ws, 'error', { msg: '방 코드를 너무 많이 틀렸어요. 1분 뒤에 다시 해 주세요.' });
     const room = rooms.get(String(msg.code || '').trim().toUpperCase());
-    if (!room) return send(client.ws, 'error', { msg: '그런 방이 없어요. 코드를 확인해 주세요.' });
+    if (!room) { noteJoinFail(client.ip); return send(client.ws, 'error', { msg: '그런 방이 없어요. 코드를 확인해 주세요.' }); }
     if (room.state !== 'waiting') return send(client.ws, 'error', { msg: '이미 게임이 시작된 방이에요.' });
     if (room.seats.length >= MAX_PLAYERS) return send(client.ws, 'error', { msg: `방이 가득 찼어요 (최대 ${MAX_PLAYERS}명).` });
     sitDown(room, client);
@@ -394,8 +415,9 @@ const silenceSweep = setInterval(() => {
 }, 5000);
 wss.on('close', () => { clearInterval(heartbeat); clearInterval(silenceSweep); });
 
-wss.on('connection', (ws) => {
-  const client = { id: nextId++, ws, name: sanitizeName(''), roomCode: null, lastSeen: Date.now() };
+wss.on('connection', (ws, req) => {
+  ws.on('error', () => {});   // 크기 제한 초과 같은 연결 오류는 그 손님의 연결만 끊고, 처리하지 않으면 서버 전체가 죽는다
+  const client = { id: nextId++, ws, ip: clientIp(req), name: sanitizeName(''), roomCode: null, lastSeen: Date.now() };
   clients.set(ws, client);
   ws.on('message', (raw) => {
     client.lastSeen = Date.now();
