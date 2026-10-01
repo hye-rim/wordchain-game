@@ -1,0 +1,13 @@
+{
+  "name": "wordchain-game",
+  "version": "1.0.0",
+  "description": "끝말잇기: 컴퓨터와 이어가기, 방 코드로 친구와 온라인",
+  "private": true,
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "ws": "^8.21.3"
+  }
+}

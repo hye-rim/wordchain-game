@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>끝말잇기</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Jua&display=swap" rel="stylesheet">
+<style>
+  /* 아이폰 사파리는 -webkit- 접두사를 붙여야 알아듣는다: 버튼을 누르다 글자가 선택(블록)되거나 길게 눌러 복사 메뉴가 뜨지 않게 */
+  *, *::before, *::after { -webkit-user-select:none; user-select:none; -webkit-touch-callout:none; }
+  input, textarea { -webkit-user-select:text; user-select:text; -webkit-touch-callout:default; }
+
+  /* 작은 오락실 공통 스티커 스타일 */
+  :root { --ink:#2b1d52; --yellow:#ffd23f; --pink:#ff5fa2; --mint:#7ee39a; --sky:#8fd3ff; --muted:#6b5c95; }
+  * { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+  [hidden] { display:none !important; }
+  html, body {
+    width:100%; min-height:100%; height:100dvh; overflow:hidden;
+    background:
+      repeating-linear-gradient(-30deg, rgba(255,255,255,.07) 0 26px, transparent 26px 56px),
+      linear-gradient(180deg, #4f8cff 0%, #6b5cff 55%, #8a4fe0 100%);
+    font-family:'Jua', -apple-system, 'Apple SD Gothic Neo', 'Malgun Gothic', sans-serif;
+    color:var(--ink);
+  }
+  #app { position:relative; width:100%; max-width:460px; height:100dvh; margin:0 auto; }
+  .screen { position:absolute; inset:0; display:none; flex-direction:column; align-items:center; gap:12px; padding:16px 14px 14px; overflow-y:auto; -webkit-overflow-scrolling:touch; }
+  .screen.on { display:flex; }
+  .inked { color:#fff; font-weight:400; paint-order:stroke fill; -webkit-text-stroke:6px var(--ink); text-shadow:0 5px 0 var(--ink); }
+  h1.inked { font-size:clamp(50px, 16vw, 68px); line-height:1.05; color:var(--yellow); text-align:center; }
+  h1 .p { color:#ff9ecb; }
+  h2.inked { font-size:30px; text-align:center; }
+  .sub { font-size:15px; color:#fff; text-align:center; line-height:1.55; }
+  .sub b { color:var(--yellow); font-weight:400; }
+
+  button {
+    font-family:inherit; color:var(--ink); background:var(--yellow); font-size:21px;
+    border:3px solid var(--ink); border-radius:999px; padding:10px 30px; box-shadow:0 6px 0 var(--ink); cursor:pointer;
+  }
+  button:active:not(:disabled) { transform:translateY(4px); box-shadow:0 2px 0 var(--ink); }
+  button:disabled { background:#d9d3ea; color:#9a8fbd; box-shadow:0 3px 0 var(--ink); cursor:default; }
+  button.alt { background:#fff; font-size:18px; padding:8px 24px; box-shadow:0 5px 0 var(--ink); }
+  button.pink { background:var(--pink); color:#fff; }
+  button.mint { background:var(--mint); }
+  button.wide { width:min(300px, 100%); }
+  .row { display:flex; gap:10px; flex-wrap:wrap; justify-content:center; width:100%; }
+  .card {
+    width:100%; background:#fff; border:3px solid var(--ink); border-radius:20px; box-shadow:0 5px 0 var(--ink);
+    padding:10px 16px; font-size:14px; line-height:1.75; text-align:left;
+  }
+  .tag { display:inline-block; background:var(--pink); color:#fff; font-size:15px; padding:3px 14px; border-radius:999px; border:3px solid var(--ink); box-shadow:0 3px 0 var(--ink); }
+  .pill { background:#fff; border:3px solid var(--ink); border-radius:999px; box-shadow:0 4px 0 var(--ink); padding:2px 14px; font-size:18px; white-space:nowrap; }
+  .pill.y { background:var(--yellow); }
+  input[type=text] {
+    font-family:inherit; font-size:24px; color:var(--ink); text-align:center; width:100%; min-width:0;
+    background:#fff; border:3px solid var(--ink); border-radius:18px; box-shadow:0 5px 0 var(--ink); padding:10px 12px; outline:none;
+  }
+  input[type=text]:focus { box-shadow:0 5px 0 var(--ink), 0 0 0 5px rgba(255,210,63,.6); }
+  input[type=text]:disabled { background:#e9e3f7; color:#9a8fbd; }
+
+  /* 상단 바 */
+  .bar { display:flex; align-items:center; gap:8px; width:100%; }
+  .bar .grow { flex:1; }
+  .icon { width:40px; height:40px; padding:0; font-size:18px; border-radius:14px; box-shadow:0 4px 0 var(--ink); background:#fff; }
+
+  /* 지금 이어야 하는 단어: 글자마다 타일, 끝 글자는 노란 타일 */
+  .wordbox { display:flex; flex-direction:column; align-items:center; gap:6px; margin:2px 0; }
+  .who { font-size:15px; color:#fff; paint-order:stroke fill; -webkit-text-stroke:4px var(--ink); min-height:20px; }
+  .tiles { display:flex; gap:6px; justify-content:center; flex-wrap:nowrap; }
+  .tile {
+    width:var(--tw, 76px); height:calc(var(--tw, 76px) * 1.18); display:grid; place-items:center; font-size:calc(var(--tw, 76px) * .66);
+    background:#fff; border:4px solid var(--ink); border-radius:20px; box-shadow:0 7px 0 var(--ink);
+    animation:pop .28s ease-out;
+  }
+  .tile.end { background:var(--yellow); }
+  .tile.cpu { background:#d9f0ff; }
+  .tile.cpu.end { background:var(--yellow); }
+  .next { font-size:16px; color:#fff; text-align:center; }
+  .next b { display:inline-block; background:var(--yellow); color:var(--ink); border:3px solid var(--ink); border-radius:10px; padding:0 8px; margin:0 2px; font-weight:400; box-shadow:0 2px 0 var(--ink); }
+  @keyframes pop { from { transform:scale(.6) rotate(-6deg); opacity:.2; } to { transform:none; opacity:1; } }
+  .timer { width:100%; height:20px; background:#fff; border:3px solid var(--ink); border-radius:999px; overflow:hidden; box-shadow:0 3px 0 var(--ink); }
+  .timer i { display:block; height:100%; width:100%; background:linear-gradient(180deg,#7dffb0,#1fc46b); transform-origin:left; }
+  .timer.low i { background:linear-gradient(180deg,#ff8a8a,#ff3b5c); }
+  .msg { min-height:26px; font-size:18px; color:#fff; text-align:center; paint-order:stroke fill; -webkit-text-stroke:5px var(--ink); }
+  .msg.bad { color:#ffb3b3; }
+  .msg.good { color:var(--yellow); }
+  .shake { animation:shake .3s; }
+  @keyframes shake { 0%,100% { transform:translateX(0);} 25% { transform:translateX(-8px);} 75% { transform:translateX(8px);} }
+
+  .words { display:flex; flex-wrap:wrap; gap:6px; justify-content:center; align-items:center; width:100%; max-height:110px; overflow-y:auto; }
+  .words .arr { color:#fff; font-size:13px; opacity:.8; }
+  .chip { background:#fff; border:2px solid var(--ink); border-radius:999px; padding:1px 11px; font-size:15px; box-shadow:0 2px 0 var(--ink); }
+  .chip.rare { background:var(--yellow); }
+  .chip.cpu { background:#d9f0ff; }
+  .chip.dead { background:var(--pink); color:#fff; }
+  .chip .by { color:var(--muted); font-size:12px; margin-right:3px; }
+
+  .typing { display:flex; gap:8px; width:100%; align-items:stretch; }
+  .typing button { padding:8px 20px; font-size:20px; white-space:nowrap; }
+
+  /* 온라인 방 */
+  .players { display:flex; flex-wrap:wrap; gap:8px; justify-content:center; width:100%; }
+  .pl { background:#fff; border:3px solid var(--ink); border-radius:16px; box-shadow:0 4px 0 var(--ink); padding:5px 12px; font-size:16px; min-width:88px; text-align:center; line-height:1.3; }
+  .pl.turn { background:var(--yellow); transform:translateY(-3px); }
+  .pl.me b { text-decoration:underline; text-decoration-color:var(--pink); text-decoration-thickness:3px; }
+  .pl.out { background:#d9d3ea; opacity:.6; }
+  .pl.off { opacity:.55; }
+  .pl small { display:block; font-size:13px; }
+  .code { font-size:64px; letter-spacing:.12em; color:var(--yellow); paint-order:stroke fill; -webkit-text-stroke:7px var(--ink); text-shadow:0 6px 0 var(--ink); }
+  .turnbar { font-size:22px; color:#fff; paint-order:stroke fill; -webkit-text-stroke:5px var(--ink); text-align:center; min-height:32px; }
+  .veil {
+    position:absolute; inset:0; z-index:5; display:none; flex-direction:column; align-items:center; justify-content:center; gap:12px; padding:20px;
+    background:rgba(43,29,82,.66); backdrop-filter:blur(3px); text-align:center;
+  }
+  .veil.on { display:flex; }
+  .grow-spacer { flex:1; min-height:4px; }
+  @media (max-height:640px) { .wordbox { --tw:62px; } .code { font-size:50px; } }
+</style>
+</head>
+<body>
+<div id="app">
+  <!-- 처음 화면 -->
+  <section class="screen on" id="home">
+    <div class="grow-spacer"></div>
+    <h1 class="inked">끝말<span class="p">잇기</span></h1>
+    <p class="sub">앞 단어의 <b>끝 글자</b>로 시작하는 말을 이어요!<br>예) 사과 → 과일 → 일기 → 기차…</p>
+    <button class="wide" id="goSolo">🤖 컴퓨터와 이어가기</button>
+    <button class="wide pink" id="goOnline">🍻 온라인 대결</button>
+    <span class="tag" id="bestTag" hidden></span>
+    <div class="card">
+      🤖 <b>컴퓨터와 이어가기</b>: 이을 때마다 점수! 하트 3개, 길게 이을수록 시간이 줄고 컴퓨터가 어려운 끝 글자를 내요. 컴퓨터가 못 이으면 <b>한방 보너스</b><br>
+      🍻 <b>온라인 대결</b>: 방 코드로 친구 2~6명과 돌아가며 이어요. 시간을 넘기면 패, 패 3개면 탈락!<br>
+      📏 두 글자 이상 명사 · 한 번 나온 말은 다시 못 써요 · <b>두음법칙</b> OK (력→역, 라→나)
+    </div>
+    <div class="grow-spacer"></div>
+  </section>
+
+  <!-- 혼자 도전 -->
+  <section class="screen" id="solo">
+    <div class="bar">
+      <span class="pill" id="sLives">❤️❤️❤️</span>
+      <span class="pill y" id="sScore">0</span>
+      <span class="grow"></span>
+      <span class="pill" id="sLevel">Lv 1</span>
+      <button class="icon" id="sMute">🔊</button>
+      <button class="icon" id="sQuit">✕</button>
+    </div>
+    <div class="msg" id="sCombo"></div>
+    <div class="wordbox"><div class="who" id="sWho"></div><div class="tiles" id="sTiles"></div><div class="next" id="sNext"></div></div>
+    <div class="timer" id="sTimer"><i></i></div>
+    <div class="msg" id="sMsg"></div>
+    <form class="typing" id="sForm" autocomplete="off">
+      <input type="text" id="sInput" inputmode="text" maxlength="8" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" placeholder="이어 갈 말을 입력해요" enterkeyhint="send">
+      <button type="submit" class="pink" id="sSend">확인</button>
+    </form>
+    <div class="row"><button class="alt" id="sPass">패스 <span id="sPassLeft">2</span></button></div>
+    <div class="words" id="sWords"></div>
+    <div class="veil" id="sVeil"></div>
+  </section>
+
+  <!-- 온라인: 입장 -->
+  <section class="screen" id="lobby">
+    <div class="bar"><button class="icon" id="lBack">←</button><span class="grow"></span></div>
+    <h2 class="inked">온라인 대결</h2>
+    <p class="sub">친구 <b>2~6명</b>이 돌아가며 끝말을 이어요.<br>시간을 넘기면 <b>패</b>, 패 3개면 탈락!</p>
+    <input type="text" id="lName" maxlength="8" placeholder="이름 (8글자까지)" autocomplete="off">
+    <button class="wide" id="lCreate">🏠 방 만들기</button>
+    <button class="wide pink" id="lQuick">⚡ 빠른 대전 (2명)</button>
+    <div class="row" style="flex-wrap:nowrap">
+      <input type="text" id="lCode" maxlength="4" placeholder="방 코드" autocapitalize="characters" autocomplete="off" style="text-transform:uppercase">
+      <button id="lJoin" class="mint" style="padding:8px 22px">들어가기</button>
+    </div>
+    <div class="msg bad" id="lErr"></div>
+  </section>
+
+  <!-- 온라인: 방 -->
+  <section class="screen" id="room">
+    <div class="bar"><button class="icon" id="rLeave">←</button><span class="pill" id="rRound"></span><span class="grow"></span><button class="icon" id="rMute">🔊</button></div>
+    <!-- 대기 -->
+    <div id="rWait" style="width:100%;display:flex;flex-direction:column;align-items:center;gap:12px">
+      <p class="sub">방 코드를 친구에게 알려 주세요</p>
+      <div class="code" id="rCode">----</div>
+      <button class="alt" id="rCopy">🔗 초대 링크 복사</button>
+      <div class="players" id="rWaitPlayers"></div>
+      <button class="wide" id="rStart">시작하기</button>
+      <p class="sub" id="rWaitNote"></p>
+    </div>
+    <!-- 게임 -->
+    <div id="rPlay" style="width:100%;display:none;flex-direction:column;align-items:center;gap:10px">
+      <div class="players" id="rPlayers"></div>
+      <div class="wordbox"><div class="who" id="rWho"></div><div class="tiles" id="rTiles"></div><div class="next" id="rNext"></div></div>
+      <div class="turnbar" id="rTurn"></div>
+      <div class="timer" id="rTimer"><i></i></div>
+      <div class="msg" id="rMsg"></div>
+      <form class="typing" id="rForm" autocomplete="off">
+        <input type="text" id="rInput" maxlength="8" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" placeholder="내 차례에 입력해요" enterkeyhint="send">
+        <button type="submit" class="pink" id="rSend">확인</button>
+      </form>
+      <div class="words" id="rWords"></div>
+    </div>
+    <div class="veil" id="rVeil"></div>
+  </section>
+</div>
+<script src="hangul.js"></script>
+<script src="game.js"></script>
+</body>
+</html>

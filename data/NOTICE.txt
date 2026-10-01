@@ -1,0 +1,5 @@
+단어 목록 출처
+- han-dle/pd-korean-noun-list-for-wordles (CC0 1.0, https://github.com/han-dle/pd-korean-noun-list-for-wordles)
+- 원자료: 국립국어원 표준국어대사전(2018.11.13 수집)의 명사, 국립국어원 「한국어 학습용 어휘 목록」(2019.5.30 개정)
+- words.txt  : 위 목록 중 2~8글자 한글 명사 전체 (정답 판정용)
+- common.txt : 위 목록 중 '자주 쓰는' 2글자 이상 명사 (시작 단어·컴퓨터가 말할 단어·예시로 먼저 쓴다)
