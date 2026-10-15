@@ -115,6 +115,25 @@
   }
   .veil.on { display:flex; }
   .grow-spacer { flex:1; min-height:4px; }
+  /* 키보드가 올라온 동안(.kb)은 촘촘하게: 제시어·시간·입력칸이 가려지지 않고 한 번에 보이게 */
+  .kb .screen { padding:8px 12px 8px; gap:6px; }
+  .kb h1.inked, .kb h2.inked { font-size:28px; }
+  .kb .bar { margin-bottom:0; }
+  .kb .tiles { gap:5px; margin:0; }
+  .kb .tile { width:calc(var(--tw, 76px) * .72); height:calc(var(--tw, 76px) * .86); font-size:calc(var(--tw, 76px) * .5); border-width:3px; box-shadow:0 5px 0 var(--ink); border-radius:16px; }
+  .kb .wordbox { gap:2px; }
+  .kb .who { display:none; }
+  .kb .next { font-size:13px; }
+  .kb .turnbar { font-size:17px; min-height:22px; -webkit-text-stroke-width:4px; }
+  .kb .players { gap:5px; }
+  .kb .pl { padding:2px 8px; font-size:13px; min-width:64px; box-shadow:0 3px 0 var(--ink); border-width:2px; }
+  .kb .pl small { font-size:11px; }
+  .kb .timer { height:14px; }
+  .kb .msg { min-height:18px; font-size:15px; -webkit-text-stroke-width:4px; }
+  .kb .words { display:none; }
+  .kb input[type=text] { font-size:20px; padding:6px 10px; }
+  .kb .typing button { padding:6px 16px; font-size:18px; }
+  .kb .row { gap:6px; }
   @media (max-height:640px) { .wordbox { --tw:62px; } .code { font-size:50px; } }
 </style>
 </head>

@@ -539,6 +539,36 @@ const params = new URLSearchParams(location.search);
 if (session.get()) { show('room'); showVeil('다시 연결하는 중…', ''); room = { faultsMax: 3 }; connect(); }
 else if (params.get('room')) openLobby(params.get('room').toUpperCase().slice(0, 4));
 
+// ---------- 키보드가 올라오면 ----------
+// 폰에서 입력칸을 누르면 키보드가 화면 아래쪽을 덮는다. 사파리·크롬은 이때 '보이는 영역'(visualViewport)만 줄고
+// 페이지는 그대로라서, 위쪽의 제시어가 위로 밀려 가려졌다. 앱을 보이는 영역에 맞춰 붙이고 키보드가 올라온 동안은
+// 화면을 촘촘하게(.kb) 줄여서 제시어·시간·입력칸이 한 번에 보이게 한다.
+(() => {
+  const vv = window.visualViewport;
+  if (!vv) return;
+  const app = document.getElementById('app');
+  let raf = 0;
+  function fit(forceH, forceTop) {                            // 인자는 테스트에서만 쓴다 (키보드가 올라온 높이를 흉내)
+    raf = 0;
+    const h = typeof forceH === 'number' ? forceH : vv.height;
+    const top = typeof forceTop === 'number' ? forceTop : vv.offsetTop;
+    const kb = window.innerHeight - h > 120;                  // 120px 넘게 줄었으면 키보드
+    document.documentElement.classList.toggle('kb', kb);
+    if (kb) {
+      app.style.position = 'fixed';
+      app.style.top = top + 'px';
+      app.style.height = h + 'px';
+      app.style.left = '50%'; app.style.transform = 'translateX(-50%)';
+    } else {
+      app.style.position = ''; app.style.top = ''; app.style.height = ''; app.style.left = ''; app.style.transform = '';
+    }
+  }
+  const schedule = () => { if (!raf) raf = requestAnimationFrame(() => fit()); };
+  vv.addEventListener('resize', schedule);
+  vv.addEventListener('scroll', schedule);
+  window.__kbFit = fit;                                         // 테스트에서 직접 부른다
+})();
+
 /* @test-hooks:start */
 // 테스트용
 window.__wc = { get solo() { return solo; }, get room() { return room; }, startSolo, show };
