@@ -549,11 +549,20 @@ else if (params.get('room')) openLobby(params.get('room').toUpperCase().slice(0,
   if (!vv) return;
   const app = document.getElementById('app');
   let raf = 0;
+  // 키보드가 열리기 전의 화면 높이를 기억해 둔다. iOS 에 따라 키보드가 올라올 때 '보이는 영역'만 줄기도 하고 페이지 높이(innerHeight)까지
+  // 같이 줄기도 해서, 둘 중 어느 쪽이든 알아보도록 '입력칸을 누르기 전의 높이'와 비교한다 (입력칸에 포커스가 없을 때나 화면을 돌리면 갱신)
+  let baseH = Math.max(window.innerHeight, vv.height), baseW = window.innerWidth;
+  const typing = () => { const a = document.activeElement; return !!a && a.tagName === 'INPUT'; };
+  function keyboardUp(h) {
+    if (window.innerWidth !== baseW) { baseW = window.innerWidth; baseH = Math.max(window.innerHeight, h); }
+    else if (!typing()) baseH = Math.max(window.innerHeight, h);
+    return baseH - h > 120;
+  }
   function fit(forceH, forceTop) {                            // 인자는 테스트에서만 쓴다 (키보드가 올라온 높이를 흉내)
     raf = 0;
     const h = typeof forceH === 'number' ? forceH : vv.height;
     const top = typeof forceTop === 'number' ? forceTop : vv.offsetTop;
-    const kb = window.innerHeight - h > 120;                  // 120px 넘게 줄었으면 키보드
+    const kb = keyboardUp(h);                                 // 입력칸을 누르기 전보다 120px 넘게 줄었으면 키보드
     document.documentElement.classList.toggle('kb', kb);
     if (kb) {
       app.style.position = 'fixed';
