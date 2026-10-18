@@ -130,7 +130,11 @@
   .kb .pl small { font-size:11px; }
   .kb .timer { height:14px; }
   .kb .msg { min-height:18px; font-size:15px; -webkit-text-stroke-width:4px; }
-  .kb .words { display:none; }
+  /* 이어 온 단어는 숨기지 않고 한 줄로 이어 붙여 보여 준다 (옆으로 밀어 볼 수 있다) */
+  .kb .words { flex-wrap:nowrap; justify-content:flex-start; overflow-x:auto; overflow-y:hidden; max-height:none; padding:2px 2px 4px; gap:5px; scrollbar-width:none; flex:none; }
+  .kb .words::-webkit-scrollbar { display:none; }
+  .kb .words .chip { flex:none; white-space:nowrap; font-size:14px; padding:0 9px; }
+  .kb .words .arr { flex:none; }
   .kb input[type=text] { font-size:20px; padding:6px 10px; }
   .kb .typing button { padding:6px 16px; font-size:18px; }
   .kb .row { gap:6px; }

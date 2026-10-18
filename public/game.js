@@ -442,6 +442,7 @@ function renderPlaying(prev) {
     $('rTurn').textContent = myTurn ? '🎤 내 차례! 끝말을 이어요' : `⏳ ${nameOf(m.turn)}님 차례`;
   } else $('rTurn').textContent = '';
   $('rWords').innerHTML = m.words.map((x) => `<span class="chip ${x.dead ? 'dead' : x.rare ? 'rare' : ''}"><span class="by">${esc(nameOf(x.by))}</span>${esc(x.w)}</span>`).join('<span class="arr">→</span>');
+  { const e = $('rWords'); requestAnimationFrame(() => { e.scrollLeft = e.scrollWidth; }); }   // 키보드가 올라와 한 줄일 때는 가장 최근 단어가 보이게
 
   // 소리·포커스: 내 차례가 새로 왔을 때, 다른 사람이 단어를 이었을 때
   const turnKey = `${m.roundNo}:${m.turn}:${m.words.length}:${m.state}`;
