@@ -9,7 +9,10 @@ const { spawn } = require('child_process');
 const path = require('path');
 const { WebSocket } = require('ws');
 
-const PORT = 5600 + Math.floor(Math.random() * 300);
+// 운영체제가 지금 비어 있는 포트를 골라 준다. 예전엔 정해 둔 범위에서 무작위로 골라서, 다른 시험의 서버나
+// 다른 프로그램이 쓰는 포트와 겹치면 시험이 엉뚱한 서버에 붙어 가끔 실패했다
+const freePort = () => Number(require('child_process').execFileSync(process.execPath, ['-e', "const s = require('net').createServer().listen(0, '127.0.0.1', () => { console.log(s.address().port); s.close(); })"]));
+const PORT = freePort();
 
 const get = (p) => new Promise((resolve, reject) => {
   const req = http.request({ host: '127.0.0.1', port: PORT, path: p, method: 'GET' }, (res) => { res.resume(); res.on('end', () => resolve(res.statusCode)); });
